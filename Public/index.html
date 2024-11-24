@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webpage Parser</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="url"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        #content {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .loader {
+            display: none;
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #007bff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Webpage Parser</h1>
+        <div class="input-group">
+            <input type="url" id="urlInput" placeholder="Enter URL" value="https://www.gematrix.org/statistics/">
+            <button id="fetchButton" onclick="fetchContent()">Fetch Content</button>
+            <button id="saveButton" onclick="saveToFile()" disabled>Save to File</button>
+        </div>
+        <div id="loader" class="loader"></div>
+        <div id="status"></div>
+        <div id="content"></div>
+    </div>
+
+    <script>
+        let fetchedContent = '';
+
+        async function fetchContent() {
+            const urlInput = document.getElementById('urlInput');
+            const statusDiv = document.getElementById('status');
+            const contentDiv = document.getElementById('content');
+            const loader = document.getElementById('loader');
+            const fetchButton = document.getElementById('fetchButton');
+            const saveButton = document.getElementById('saveButton');
+
+            // Reset state
+            statusDiv.className = '';
+            contentDiv.textContent = '';
+            loader.style.display = 'block';
+            fetchButton.disabled = true;
+            saveButton.disabled = true;
+
+            try {
+                statusDiv.textContent = 'Fetching content...';
+                
+                // Use relative URL for API endpoint
+                const response = await fetch('/fetch-url', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: urlInput.value })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Parse the HTML content to get plain text
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.content, 'text/html');
+                fetchedContent = doc.body.textContent.trim();
+
+                // Display the content
+                contentDiv.textContent = fetchedContent;
+                statusDiv.className = 'success';
+                statusDiv.textContent = 'Content fetched successfully!';
+                saveButton.disabled = false;
+            } catch (error) {
+                statusDiv.className = 'error';
+                statusDiv.textContent = `Error: ${error.message}`;
+                console.error('Error:', error);
+            } finally {
+                loader.style.display = 'none';
+                fetchButton.disabled = false;
+            }
+        }
+
+        function saveToFile() {
+            if (!fetchedContent) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.className = 'error';
+                statusDiv.textContent = 'No content to save. Please fetch content first.';
+                return;
+            }
+
+            // Create blob and download link
+            const blob = new Blob([fetchedContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'webpage-content.txt';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'success';
+            statusDiv.textContent = 'File saved successfully!';
+        }
+    </script>
+</body>
+</html>
