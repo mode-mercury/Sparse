@@ -1,0 +1,17 @@
+{
+  "name": "webpage-parser",
+  "version": "1.0.0",
+  "description": "Webpage content parser and downloader",
+  "main": "server.js",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.2",
+    "cors": "^2.8.5"
+  }
+}
